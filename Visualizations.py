@@ -1,62 +1,61 @@
-import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from io import StringIO
-from sklearn.linear_model import LinearRegression
 import numpy as np
 
-# Step 1: Download the dataset
+# Scraping and Preparing the Dataset
 url = "https://datahub.io/core/global-temp/r/annual.csv"
-response = requests.get(url)
-if response.status_code == 200:
-    data = StringIO(response.text)
-    df = pd.read_csv(data)
-else:
-    print("Failed to download dataset.")
-    exit()
+data = pd.read_csv(url)
 
-# Step 2: Data Preprocessing
-df.rename(columns={"Source": "Source", "Year": "Year", "Mean": "Temperature"}, inplace=True)
-df.dropna(subset=["Temperature"], inplace=True)
+# Drop missing values if any
+data = data.dropna()
 
-# Step 3: Create visualizations
-# Scatter plot with regression line
-sns.set(style="whitegrid")
-plt.figure(figsize=(10, 6))
+# Add a 'Decade' column for analysis
+data['Decade'] = (data['Year'] // 10) * 10
 
-X = df["Year"].values.reshape(-1, 1)
-y = df["Temperature"].values
+# Function 1: Scatter Plot with Regression Line
+def scatter_plot_with_regression(data):
+    plt.figure(figsize=(10, 6))
+    sns.regplot(x=data['Year'], y=data['Mean'], scatter_kws={'s': 10}, line_kws={"color": "red"})
+    plt.title('Global Temperature Anomalies Over Time', fontsize=14)
+    plt.xlabel('Year', fontsize=12)
+    plt.ylabel('Mean Temperature Anomaly (°C)', fontsize=12)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('scatter_plot_regression.png')  # Save the plot
+    plt.show()
 
-# Regression model
-model = LinearRegression()
-model.fit(X, y)
-y_pred = model.predict(X)
+# Function 2: Line Chart
+def line_chart(data):
+    plt.figure(figsize=(10, 6))
+    plt.plot(data['Year'], data['Mean'], marker='o', linestyle='-', color='blue')
+    plt.title('Yearly Global Temperature Anomalies', fontsize=14)
+    plt.xlabel('Year', fontsize=12)
+    plt.ylabel('Mean Temperature Anomaly (°C)', fontsize=12)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('line_chart.png')  # Save the plot
+    plt.show()
 
-sns.scatterplot(x="Year", y="Temperature", data=df, label="Data Points")
-plt.plot(df["Year"], y_pred, color="red", label="Regression Line")
-plt.title("Global Temperature Change Over Time (Scatterplot with Regression Line)")
-plt.xlabel("Year")
-plt.ylabel("Mean Temperature Anomaly (°C)")
-plt.legend()
-plt.show()
+# Function 3: Bar Chart
+def bar_chart(data):
+    decadal_avg = data.groupby('Decade')['Mean'].mean()
+    plt.figure(figsize=(10, 6))
+    decadal_avg.plot(kind='bar', color='orange')
+    plt.title('Average Temperature Anomaly Per Decade', fontsize=14)
+    plt.xlabel('Decade', fontsize=12)
+    plt.ylabel('Average Temperature Anomaly (°C)', fontsize=12)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig('bar_chart.png')  # Save the plot
+    plt.show()
 
-# Line chart for temperature trends
-plt.figure(figsize=(10, 6))
-sns.lineplot(x="Year", y="Temperature", data=df, label="Temperature Trend")
-plt.title("Global Temperature Change Over Time (Line Chart)")
-plt.xlabel("Year")
-plt.ylabel("Mean Temperature Anomaly (°C)")
-plt.legend()
-plt.show()
+# Main Execution
+if __name__ == "__main__":
+    print("First 5 rows of the dataset:")
+    print(data.head())  # Display the first 5 rows of the dataset
 
-# Bar chart for average temperature change per decade
-df["Decade"] = (df["Year"] // 10) * 10
-decade_avg = df.groupby("Decade")["Temperature"].mean().reset_index()
-
-plt.figure(figsize=(10, 6))
-sns.barplot(x="Decade", y="Temperature", data=decade_avg, palette="coolwarm")
-plt.title("Average Temperature Change Per Decade (Bar Chart)")
-plt.xlabel("Decade")
-plt.ylabel("Mean Temperature Anomaly (°C)")
-plt.show()
+    # Create visualizations
+    scatter_plot_with_regression(data)
+    line_chart(data)
+    bar_chart(data)
